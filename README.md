@@ -1,0 +1,1 @@
+The source code for numerical results in the paper "The simplest nomic inequalities and their violations" (in preparation, by Julian Wechs, Nasra Daher Ahmed, Zixuan Liu, and Ravi Kunjwal)
