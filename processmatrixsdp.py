@@ -161,4 +161,4 @@ class TripartiteSDP:
         self.Omega.value = Omega_val
 
         # Solve the SDP using the SCS solver
-        return self.problem.solve(solver=cp.SCS, eps=1e-6)
+        return self.problem.solve(solver=cp.SCS, eps=1e-4, max_iters=20000,verbose=False)
