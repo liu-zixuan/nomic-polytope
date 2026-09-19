@@ -35,7 +35,8 @@ def partial_trace(A, dims, trace_list, discard=True):
     # Convert subsystem dimensions to a NumPy array
     dims = np.array(dims)
 
-    # Reorder subsystems so traced systems appear first
+    # Reorder subsystems so traced systems appear first. cvxpy's partial
+    # trace can then act on the combined first factor in one operation.
     new_order = trace_list + [i for i in range(dims.size) if i not in trace_list]
 
     # Dimension of the traced subsystem
@@ -64,7 +65,8 @@ def partial_trace(A, dims, trace_list, discard=True):
         # Standard partial trace: traced subsystems are removed
         return A
     else:
-        # Compute inverse permutation to restore subsystem ordering
+        # The inverse index permutation restores the original party order
+        # after reinserting maximally mixed states in the traced factors.
         p_inv = np.einsum(idx.reshape(dims[new_order]), new_order).flatten()
 
         # Reinsert traced systems as maximally mixed states
@@ -87,6 +89,7 @@ class TripartiteSDP:
     """
 
     def __init__(self, dims):
+        """Build the dual SDP for subsystem order I1,O1,I2,O2,I3,O3."""
 
         # -------------------------------------------------------------
         # Problem dimensions
@@ -127,8 +130,8 @@ class TripartiteSDP:
             # Enforce C ≥ Ω
             C >> self.Omega,
             
-            # Linear constraints ensuring that C lies in the span of
-            # Choi operators of tripartite no-signaling channels
+            # Replacing O_k by identity/d_k equals replacing I_k,O_k.
+            # These are the three no-signaling channel-span conditions.
             ptrace([1]) == ptrace([0, 1]),
             ptrace([3]) == ptrace([2, 3]),
             ptrace([5]) == ptrace([4, 5]),

@@ -1,13 +1,10 @@
-'''
-Compute the quantum bound for the Lazy Guess Your Neighbor's Parity (LGYNP) game.
+"""Compute the paper's quantum bound for Lazy Guess Your Neighbour's Parity.
 
-Success probability:
-
-    p_succ = p(a = x(y XOR z), b = y(x XOR z), c = z(x XOR y))
-
-The bound is computed using a semidefinite program over tripartite
-process matrices.
-'''
+For settings a_1,a_2,a_3, the winning outcomes are
+x_k = a_k(a_j XOR a_l). We build the seven nonconstant winning-event
+Choi operators, maximize their sum over tripartite process matrices,
+then add the always-winning 000 setting and divide by eight.
+"""
 
 from processmatrixsdp import TripartiteSDP
 import numpy as np
@@ -68,14 +65,14 @@ identity_qubit = np.eye(2)
 # Local instruments for the LGYNP game
 # ------------------------------------------------------------------
 
-# Instrument corresponding to input x = 0 ("lazy" operation):
+# Instrument for setting a_k = 0 (the "lazy" operation):
 # identity gate with a classical label
 lazy_instrument = kron_all(
     outer_projector(identity_qubit.flatten()),
     std_basis_mat(2, 0)
 )
 
-# Instruments corresponding to input x = 1:
+# Instruments for setting a_k = 1:
 # projective measurement in the computational basis with a classical label
 active_instrument = [
     kron_all(
@@ -91,8 +88,8 @@ active_instrument = [
 # Performance operator for the LGYNP winning condition
 # ------------------------------------------------------------------
 
-# Success condition:
-# a = x(y ⊕ z), b = y(x ⊕ z), c = z(x ⊕ y)
+# Success condition: x_k = a_k(a_j ⊕ a_l).
+# The all-zero setting is certain to win and is added as 1/8 below.
 
 performance_operator = \
     kron_all(active_instrument[0], active_instrument[0], active_instrument[0]) + \
@@ -113,7 +110,7 @@ performance_operator = \
 sdp_instance = TripartiteSDP([2, 4] * 3)
 
 # Compute the optimal value of the linear functional defined by the performance operator.
-# The normalization converts the SDP value into the success probability.
+# The seven modeled settings each have weight 1/8; 000 contributes 1/8.
 p_succ = sdp_instance.optimize(performance_operator) / 8 + 1 / 8
 
 # Print the optimal quantum success probability

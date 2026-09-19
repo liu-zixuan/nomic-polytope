@@ -1,9 +1,11 @@
-'''
-Compute the quantum bound for a general hyperplane, parametrised by an inequality of the form
-((1, P) · u ≥ 0), where P is the 19-dimensional probability vector and u is a vector of 20 coefficients. 
-The bound is computed using a semidefinite program over tripartite
-process matrices.
-'''
+"""Compute the quantum-process lower bound of a paper-coordinate inequality.
+
+For a 20-vector u representing (1, P) · u >= 0, build Choi operators
+for the 19 nonconstant coordinates of P. A tripartite process-matrix SDP
+maximizes the negative coefficient sum; u[0] minus that maximum is the
+minimum inequality value. The instruments use the single-trigger
+reduction described in main.tex.
+"""
 
 from processmatrixsdp import TripartiteSDP
 import numpy as np
@@ -82,6 +84,9 @@ active_instrument = [
     for a in [0, 1]
 ]
 
+# Order matches the 19 probabilities P in main.tex and the generated
+# nomic vertices. There is no component for setting 000: its outcome is
+# certain, and that coordinate was removed from P.
 performance_operator_components = [
     kron_all(active_instrument[1], lazy_instrument, lazy_instrument),
     kron_all(lazy_instrument, active_instrument[1], lazy_instrument),
@@ -105,11 +110,15 @@ performance_operator_components = [
 ]
 
 
-def qp_bound(ineq):
+def qp_bound(u):
+    """Return the numerical QP lower bound for a 20-coefficient vector u."""
 
-    coeffs = [-c for c in ineq[1:]]
+    if len(u) != 20:
+        raise ValueError("An inequality must have 20 coefficients: (1, P) · u")
+
+    coeffs = [-c for c in u[1:]]
     performance_operator = sum(c * M for c, M in zip(coeffs, performance_operator_components))
-    
+
     # ------------------------------------------------------------------
     # Solve the SDP
     # ------------------------------------------------------------------
@@ -119,7 +128,7 @@ def qp_bound(ineq):
     sdp_instance = TripartiteSDP([2, 4] * 3)
 
     # Compute the optimal value of the linear functional defined by the performance operator.
-    # The normalization converts the SDP value into the success probability.
-    bound = ineq[0] - sdp_instance.optimize(performance_operator) 
+    # Duality: min (u_0 + sum_j u_j P_j) = u_0 - max sum_j (-u_j) P_j.
+    bound = u[0] - sdp_instance.optimize(performance_operator)
 
-    return bound 
+    return bound
