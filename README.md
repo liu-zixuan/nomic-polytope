@@ -1,6 +1,6 @@
 # Nomic polytope and quantum bounds
 
-Code and data accompanying *The simplest nomic inequalities and their violations*. The scenario has three parties. Each party receives a binary setting `a_k`; its outcome `x_k` is fixed to zero for `a_k = 0` and is binary for `a_k = 1`. The scripts characterize the deterministically consistent (nomic, `DC`) polytope and estimate quantum process (`QP`) bounds using semidefinite programming.
+Code and data accompanying *The simplest nomic inequalities and their violations* (by Julian Wechs, Nasra Daher Ahmed, Zixuan Liu, and Ravi Kunjwal). The scenario has three parties. Each party receives a binary setting `a_k`; its outcome `x_k` is fixed to zero for `a_k = 0` and is binary for `a_k = 1`. The scripts characterize the deterministically consistent (nomic, `DC`) polytope and estimate quantum process (`QP`) bounds using semidefinite programming.
 
 ## Coordinates and inequality convention
 
@@ -8,8 +8,8 @@ The 19 entries of `P` follow the order displayed in the paper's “Nomic polytop
 
 ## Requirements
 
-- Python 3.10 or later. `generate_nomic_vertices.py` and `process_facets.py` use only the standard library.
-- `numpy` and `cvxpy` with its SCS solver for quantum bounds (`LGYNP.py`, `qp_bound_sdp.py`, and `compute_bounds.py`). Install with `python3 -m pip install numpy cvxpy scs` in your preferred virtual environment.
+- Python 3.10 or later. `generate_nomic_vertices.py` and `classify_nomic_facets.py` use only the standard library.
+- `numpy`, `scipy`, and `cvxpy` with its SCS solver for quantum bounds (`LGYNP.py`, `qp_bound_sdp.py`, `compute_bounds.py`, and `pairwise_causal.py`). Install with `python3 -m pip install numpy scipy cvxpy scs` in your preferred virtual environment. The pairwise-causal correlation LP uses SciPy's HiGHS interface.
 - [cddlib](https://github.com/cddlib/cddlib) with the `cddexec` command for regenerating the halfspace representation. The checked-in facet file makes cddlib optional for the other scripts.
 
 Run commands from the repository root. These are standalone scripts; no package installation is needed.
@@ -26,13 +26,13 @@ This enumerates all binary tripartite process functions with a unique fixed poin
 cddexec --rep < nomic_vertices.ext > nomic_facets.ine
 ```
 
-The checked-in output contains 20,726 facets. Then run:
+The checked-in output contains 20,726 facets. To classify them and regenerate both `facet_families.txt` and the [LaTeX catalogue](nomic_facet_classes.tex), run:
 
 ```sh
-python3 process_facets.py
+python3 classify_nomic_facets.py
 ```
 
-This writes `facet_families.txt`, containing 469 representatives under party permutations and output flips. Its exact orbit search can take substantial time. The repository includes the generated `nomic_vertices.ext`, `nomic_facets.ine`, and `facet_families.txt` so that the SDP steps can use them directly.
+The catalogue lists each orbit size and representative. It interprets every facet as an exact upper bound on a seven-setting weighted winning game, with the referee's acceptance rule specified at the start of the note. It also checks which classes are single-target lazy guessing games: class 89 is the only one testing all seven settings, and five classes give partial games. Enumerating all 16 Boolean rules applied symmetrically to the neighbors' settings shows that the AND and OR optimal inequalities are not facets; XOR and XNOR give class 89. Three classes are event positivity constraints. The script checks that all 20,726 input facets lie in complete symmetry orbits and that its representatives match `facet_families.txt`. It uses only the standard library. To compile the note, run `pdflatex nomic_facet_classes.tex` twice (the second pass settles longtable widths).
 
 ## Reproduce bounds
 
@@ -46,6 +46,8 @@ python3 compute_bounds.py
 `compute_bounds.py` prints, for each of the 469 family representatives, the inequality vector followed by `[general, QP, PC, DC, causal]` lower bounds. It reads `causal_vertices.ext` (680 vertices) and `pc_vertices_superset.ext` (449,124 projected classical-process rows), as well as the nomic and family files. The `PC` file is a *superset* of the projected `PC` vertices; minimizing over it supplies the bound used in the paper. This full run is resource intensive: it solves an SDP for every family and scans the large classical-process file for every bound. Use `LGYNP.py` for a quick single-game SDP.
 
 `processmatrixsdp.py` provides the dual tripartite process-matrix SDP shared by the bound scripts. The `QP` calculation fixes the instruments allowed by the paper's single-trigger reduction; it does not optimize instruments separately. The scripts use SCS with `eps=1e-6`, so small discrepancies from the paper's rounded values are expected.
+
+On the `unitary_process_relaxation` branch, run `python3 pairwise_causal.py` for two LGYNP calculations. The script uses the canonical instruments from `LGYNP.py`: the lazy setting is the identity qubit channel with classical label 0, while the active setting measures and reprepares the computational-basis outcome with label 1. For every selected pair, the correlation constraints treat the third setting as a global-past input and retain the third outcome as a global-future output; this four-node correlation must be a random mixture of the two orders of the selected parties. The primal SDP imposes the same constraints on a full valid process matrix, with no block-diagonal restriction. `SingleTriggerTripartitePrimalSDP` in `processmatrixsdp.py` exposes the paper's 19-component probability vector, accepts additional linear constraints on that vector, and maximizes any supplied 19-component linear function. The correlation LP seven-term bound is 4.75; the constrained process value is recorded in `pairwise_causal.py` with its solver tolerance.
 
 ## Data-file note
 
